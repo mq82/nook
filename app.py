@@ -50,7 +50,6 @@ st.markdown(
 )
 
 st.caption("A small personal system for home, health, fermentation, and ballet.")
-st.image("static/apple-touch-icon.png", width=120)
 
 # -------- 1st level tabs --------
 main_tab = st.tabs([
