@@ -24,10 +24,14 @@ from pages_fermentation.yogurt import render_yogurt
 
 from pages_ballet.ballet_tracker import render_ballet_tracker
 
+from PIL import Image
+
+app_icon = Image.open("static/icon-512.png")
+
 st.set_page_config(
     page_title="Nook",
-    page_icon="🌿",
-    layout="wide",
+    page_icon=app_icon,
+    layout="wide"
 )
 
 apply_global_styles()
@@ -36,7 +40,7 @@ apply_mobile_styles()
 st.title("🌿 Nook")
 st.markdown(
     """
-    <link rel="manifest" href="/app/static/manifest.json?v=2">
+    <link rel="manifest" href="/app/static/manifest.json?v=3">
     <link rel="apple-touch-icon" href="/app/static/apple-touch-icon.png?v=2">
     <meta name="theme-color" content="#7a8f68">
     <meta name="apple-mobile-web-app-capable" content="yes">
