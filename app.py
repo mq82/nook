@@ -41,7 +41,7 @@ st.title("🌿 Nook")
 st.markdown(
     """
     <link rel="manifest" href="/app/static/manifest.json?v=3">
-    <link rel="apple-touch-icon" href="/app/static/apple-touch-icon.png?v=2">
+    <link rel="apple-touch-icon" href="/app/static/apple-touch-icon.png">
     <meta name="theme-color" content="#7a8f68">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Nook">
