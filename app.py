@@ -26,7 +26,7 @@ from pages_ballet.ballet_tracker import render_ballet_tracker
 
 from PIL import Image
 
-app_icon = Image.open("static/icon-512.png")
+app_icon = Image.open("static/nook-icon-512.png")
 
 st.set_page_config(
     page_title="Nook",
