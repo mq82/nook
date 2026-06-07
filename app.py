@@ -31,6 +31,7 @@ st.set_page_config(
 )
 
 apply_global_styles()
+apply_mobile_styles()
 
 st.title("🌿 Nook")
 st.markdown(
