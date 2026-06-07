@@ -6,7 +6,7 @@ sys.path.append(str(ROOT_DIR))
 
 import streamlit as st
 
-from utils.styles import apply_global_styles
+from utils.styles import apply_global_styles, apply_mobile_styles
 
 from pages_dashboard.dashboard import render_dashboard
 
