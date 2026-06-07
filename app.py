@@ -5,6 +5,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 sys.path.append(str(ROOT_DIR))
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from utils.styles import apply_global_styles, apply_mobile_styles
 
@@ -38,15 +39,33 @@ apply_global_styles()
 apply_mobile_styles()
 
 st.title("🌿 Nook")
-st.markdown(
+components.html(
     """
-    <link rel="manifest" href="/app/static/manifest.json?v=3">
-    <link rel="apple-touch-icon" href="/app/static/apple-touch-icon.png">
-    <meta name="theme-color" content="#7a8f68">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Nook">
+    <script>
+    const iconUrl = "https://raw.githubusercontent.com/mq82/nook/main/static/apple-touch-icon.png";
+
+    const appleIcon = document.createElement("link");
+    appleIcon.rel = "apple-touch-icon";
+    appleIcon.href = iconUrl;
+    document.head.appendChild(appleIcon);
+
+    const metaCapable = document.createElement("meta");
+    metaCapable.name = "apple-mobile-web-app-capable";
+    metaCapable.content = "yes";
+    document.head.appendChild(metaCapable);
+
+    const metaTitle = document.createElement("meta");
+    metaTitle.name = "apple-mobile-web-app-title";
+    metaTitle.content = "Nook";
+    document.head.appendChild(metaTitle);
+
+    const metaTheme = document.createElement("meta");
+    metaTheme.name = "theme-color";
+    metaTheme.content = "#7a8f68";
+    document.head.appendChild(metaTheme);
+    </script>
     """,
-    unsafe_allow_html=True
+    height=0,
 )
 
 st.caption("A small personal system for home, health, fermentation, and ballet.")
