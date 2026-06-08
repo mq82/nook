@@ -18,6 +18,7 @@ from pages_home.fridge_inventory import render_fridge_inventory
 from pages_personal.vera_supplements import render_vera_supplements
 from pages_personal.pingping_plan import render_pingping_plan
 from pages_personal.pingping_checkin import render_pingping_checkin
+from pages_personal.period_tracker import render_period_tracker
 
 from pages_fermentation.kombucha import render_kombucha
 from pages_fermentation.pickles import render_pickles
@@ -84,6 +85,7 @@ main_tab = st.tabs([
 with main_tab[0]:
     render_dashboard()
 
+# -------- HOME --------
 with main_tab[1]:
     home_page = st.segmented_control(
         "Choose Section",
@@ -104,6 +106,7 @@ with main_tab[2]:
         "Choose Section",
         [
             "Vera Supplements",
+            "Period Tracker",
             "Pingping Supplements",
             "Pingping Daily Check"
         ],
@@ -112,10 +115,13 @@ with main_tab[2]:
 
     if personal_page == "Vera Supplements":
         render_vera_supplements()
+    elif personal_page == "Period Tracker":
+        render_period_tracker()
     elif personal_page == "Pingping Supplements":
         render_pingping_plan()
     elif personal_page == "Pingping Daily Check":
         render_pingping_checkin()
+
 
 # -------- FERMENTATION --------
 with main_tab[3]:

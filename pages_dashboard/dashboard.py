@@ -122,8 +122,120 @@ def render_dashboard():
 
     last_class = last_class_result.data[0] if last_class_result.data else None
 
+    # Period tracker
+    period_result = (
+        supabase
+        .table("cycle_periods")
+        .select("*")
+        .order("start_date", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    latest_period = period_result.data[0] if period_result.data else None
+
+    cycle_day = None
+    latest_period_start = None
+    latest_period_end = None
+
+    if latest_period:
+        latest_period_start = pd.to_datetime(latest_period["start_date"]).date()
+        latest_period_end = (
+            pd.to_datetime(latest_period["end_date"]).date()
+            if latest_period.get("end_date")
+            else None
+        )
+        cycle_day = (today_date - latest_period_start).days + 1
+
+    if latest_period_start:
+        if latest_period_end:
+            st.caption(
+                f"Latest period: {latest_period_start} → {latest_period_end}"
+            )
+        else:
+            st.caption(
+                f"Latest period started on {latest_period_start}"
+            )
+
+    predicted_next_period = None
+    days_until_next_period = None
+
+    period_history_result = (
+        supabase
+        .table("cycle_periods")
+        .select("*")
+        .order("start_date", desc=False)
+        .execute()
+    )
+
+    period_history = period_history_result.data
+
+    if len(period_history) >= 2 and latest_period_start:
+        period_df = pd.DataFrame(period_history)
+        period_df["start_date"] = pd.to_datetime(period_df["start_date"])
+        period_df = period_df.sort_values("start_date")
+
+        period_df["cycle_length_days"] = (
+            period_df["start_date"]
+            .diff()
+            .dt.days
+        )
+
+        recent_cycle_lengths = (
+            period_df["cycle_length_days"]
+            .dropna()
+            .tail(6)
+        )
+
+        if not recent_cycle_lengths.empty:
+            avg_cycle_length = int(round(recent_cycle_lengths.mean()))
+            predicted_next_period = latest_period_start + pd.Timedelta(days=avg_cycle_length)
+            days_until_next_period = (predicted_next_period - today_date).days
+
+    if predicted_next_period is not None:
+        st.caption(
+            f"Estimated next period: {predicted_next_period} "
+            f"({days_until_next_period} day(s) left)"
+        )
+
+    # Period daily log today
+    daily_log_result = (
+        supabase
+        .table("daily_logs")
+        .select("*")
+        .eq("log_date", today)
+        .limit(1)
+        .execute()
+    )
+
+    today_daily_log = daily_log_result.data[0] if daily_log_result.data else None
+
+    if today_daily_log:
+        st.caption(
+            f'Period daily log today: '
+            f'energy {today_daily_log.get("energy_level")}/10 · '
+            f'stress {today_daily_log.get("stress_level")}/10 · '
+            f'pain {today_daily_log.get("lower_ab_pain")}/10'
+        )
+    else:
+        st.caption("No period daily log today.")
+
     # Attention Center
     attention_items = []
+
+    if cycle_day is not None:
+        if cycle_day <= 3:
+            attention_items.append(
+                f"Cycle Day {cycle_day}. Take it easy if needed."
+            )
+        elif 12 <= cycle_day <= 18:
+            attention_items.append(
+                f"Cycle Day {cycle_day}. Possible fertile window."
+            )
+        elif cycle_day >= 28:
+            attention_items.append(
+                f"Cycle Day {cycle_day}. Period may be approaching."
+            )
 
     remaining_pingping = total_pingping - completed_pingping
 
@@ -175,7 +287,7 @@ def render_dashboard():
     
     st.markdown("### Personal")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric("Vera Supplement Logs", len(vera_supplement_logs))
@@ -190,17 +302,23 @@ def render_dashboard():
                 f'- **{item["supplement_name"]}**: '
                 f'{item["dosage"]} {item["unit"]}'
             )
+        
+    with col3:
+        if cycle_day:
+            st.metric("Cycle Day", f"Day {cycle_day}")
+        else:
+            st.metric("Cycle Day", "-")
 
     st.divider()
 
     st.markdown("### Home")
 
-    col3, col4 = st.columns(2)
-
-    with col3:
-        st.metric("Meals Logged Today", len(meals_today))
+    col4, col5 = st.columns(2)
 
     with col4:
+        st.metric("Meals Logged Today", len(meals_today))
+
+    with col5:
         st.metric("Expiring Fridge Items", len(expiring_items))
 
     if meals_today:
@@ -230,12 +348,12 @@ def render_dashboard():
 
     st.markdown("### Fermentation")
 
-    col5, col6 = st.columns(2)
-
-    with col5:
-        st.metric("Active Kombucha Batches", len(active_kombucha))
+    col6, col7 = st.columns(2)
 
     with col6:
+        st.metric("Active Kombucha Batches", len(active_kombucha))
+
+    with col7:
         if oldest_kombucha_days is not None:
             st.metric("Oldest Kombucha Batch", f"Day {oldest_kombucha_days}")
         else:
@@ -250,12 +368,12 @@ def render_dashboard():
 
     st.markdown("### Ballet")
 
-    col7, col8 = st.columns(2)
-
-    with col7:
-        st.metric("Total Ballet Hours", f"{ballet_hours:.1f} hrs")
+    col8, col9 = st.columns(2)
 
     with col8:
+        st.metric("Total Ballet Hours", f"{ballet_hours:.1f} hrs")
+
+    with col9:
         st.metric("This Month", f"{ballet_this_month_hours:.1f} hrs")
 
     if last_class:
