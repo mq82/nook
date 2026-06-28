@@ -26,6 +26,8 @@ from pages_fermentation.yogurt import render_yogurt
 
 from pages_ballet.ballet_tracker import render_ballet_tracker
 
+from pages_settings.settings import render_settings
+
 from PIL import Image
 
 app_icon = Image.open("static/apple-touch-icon.png")
@@ -77,7 +79,8 @@ main_tab = st.tabs([
     "🏠 Home",
     "💊 Personal Daily",
     "🫙 Fermentation",
-    "🩰 Ballet"
+    "🩰 Ballet",
+    "⚙️ Settings"
 ])
 
 
@@ -145,3 +148,7 @@ with main_tab[3]:
 # -------- BALLET --------
 with main_tab[4]:
     render_ballet_tracker()
+
+# -------- Settings / Data Dictionary --------
+with main_tab[5]:
+    render_settings()

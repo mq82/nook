@@ -6,6 +6,7 @@ from utils.home_db import (
     get_supplement_daily_summary,
 )
 
+from utils.master_data import get_option_labels
 
 def render_vera_supplements():
     st.subheader("Vera Supplements Log")
@@ -13,19 +14,7 @@ def render_vera_supplements():
     st.caption("Record what you take at the current time. No manual date/time input.")
 
     with st.form("add_supplement_form", clear_on_submit=True):
-        common_supplements = [
-            "Magnesium Glycinate",
-            "Vitamin D",
-            "Vitamin K2",
-            "Selenium",
-            "Fish Oil",
-            "NAC",
-            "Glutathione",
-            "Vitamin B Complex",
-            "Vitamin C",
-            "Zinc",
-            "Other"
-        ]
+        common_supplements = get_option_labels("supplements")
 
         selected_supplement = st.selectbox(
             "Supplement Name",
