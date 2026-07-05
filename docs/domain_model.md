@@ -305,3 +305,49 @@ Example:
 
 * Supplement should be an Entity.
 * Meal Type can stay a Library option.
+
+# Supplement Domain
+
+## Entities
+
+- Person
+- Supplement
+- Supplement Bottle
+
+## Events
+
+- Purchase
+- Supplement Intake
+- Open Bottle
+- Finish Bottle
+
+## Relationships
+
+Person
+    performs
+        ↓
+Supplement Intake
+    uses
+        ↓
+Supplement Bottle
+    instance of
+        ↓
+Supplement
+
+## Lifecycle
+
+Supplement Bottle
+
+Purchase
+↓
+
+Open
+↓
+
+Use
+↓
+
+Finish
+↓
+
+Discard
