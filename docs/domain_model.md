@@ -1,5 +1,50 @@
 Nook Domain Model 🌿
 
+## Modeling Principles
+
+### 1. Reality First
+
+Nook models the real world first.
+
+We do not start from pages, buttons, or database tables.  
+We first ask:
+
+> What exists in the real world?
+
+### 2. Entity Before UI
+
+A new feature should first identify its entities and events.
+
+We do not create a table just because a page needs a dropdown.  
+The UI should grow from the domain model.
+
+### 3. Every Attribute Has One Owner
+
+An attribute belongs to the entity that naturally owns it.
+
+Examples:
+
+- `expiry_date` belongs to `Supplement Bottle`, not `Supplement`.
+- `teacher_name` belongs to `Teacher`, not directly to `Ballet Lesson`.
+- `food_category` belongs to `Food`, not `Meal`.
+
+### 4. Event Records What Happened
+
+Most trackers are event recorders.
+
+Examples:
+
+- Supplement Intake
+- Meal
+- Ballet Lesson
+- Fermentation Observation
+- Daily Health Log
+
+For every event, ask:
+
+> When did it happen?  
+> Who or what was involved?
+
 Nook is modeled from real-world entities, not from UI pages.
 
 Principle:
