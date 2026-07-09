@@ -67,12 +67,20 @@ def render_settings():
         format_func=lambda x: "Active" if x else "Inactive"
     )
 
-    if st.button("Update Status", use_container_width=True):
+    if st.button(
+        "Update Status",
+        key="settings_update_status",
+        use_container_width=True,
+        ):
         update_option_status(option_map[selected], new_status)
         st.success("Status updated.")
         st.rerun()
 
-    if st.button("Delete Option", use_container_width=True):
+    if st.button(
+        "Delete Option",
+        key="settings_delete_option",
+        use_container_width=True,
+        ):
         delete_option(option_map[selected])
         st.success("Option deleted.")
         st.rerun()

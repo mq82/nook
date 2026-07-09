@@ -6,6 +6,7 @@ from utils.supabase_client import get_supabase_client
 from utils.home_db import get_meals_by_date, get_expiring_inventory_items
 from utils.time_utils import today_bj_date
 
+from services.dashboard_service import get_low_stock_supplement_bottles
 
 def render_dashboard():
     st.subheader("Today Overview")
@@ -56,6 +57,20 @@ def render_dashboard():
     )
 
     vera_supplement_logs = supplement_result.data
+
+    # Supplements low stock
+    low_stock_supplements = get_low_stock_supplement_bottles(threshold=10)
+
+    if low_stock_supplements:
+        st.divider()
+        st.subheader("Low Stock Supplements")
+
+        for item in low_stock_supplements:
+            st.warning(
+                f'{item["supplement_name"]} | '
+                f'{item["brand"]} | '
+                f'{item["remaining"]:g} {item["unit"]} left'
+            )
 
     # Meals
     meals_today = get_meals_by_date(today)
@@ -222,6 +237,11 @@ def render_dashboard():
 
     # Attention Center
     attention_items = []
+
+    if low_stock_supplements:
+        attention_items.append(
+            f"{len(low_stock_supplements)} supplement bottle(s) low in stock."
+        )
 
     if cycle_day is not None:
         if cycle_day <= 3:

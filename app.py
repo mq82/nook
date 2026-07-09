@@ -19,6 +19,7 @@ from pages_personal.vera_supplements import render_vera_supplements
 from pages_personal.pingping_plan import render_pingping_plan
 from pages_personal.pingping_checkin import render_pingping_checkin
 from pages_personal.period_tracker import render_period_tracker
+from pages_personal.supplement_library import render_supplement_library
 
 from pages_fermentation.kombucha import render_kombucha
 from pages_fermentation.pickles import render_pickles
@@ -111,7 +112,8 @@ with main_tab[2]:
             "Vera Supplements",
             "Period Tracker",
             "Pingping Supplements",
-            "Pingping Daily Check"
+            "Pingping Daily Check",
+            "Supplement Library"
         ],
         default = "Vera Supplements"
     )
@@ -124,6 +126,8 @@ with main_tab[2]:
         render_pingping_plan()
     elif personal_page == "Pingping Daily Check":
         render_pingping_checkin()
+    elif personal_page == "Supplement Library":
+        render_supplement_library()
 
 
 # -------- FERMENTATION --------
