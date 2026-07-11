@@ -19,9 +19,9 @@ def get_meals_by_date(meal_date):
     result = (
         supabase
         .table("meals")
-        .select("*")
+        .select("id, meal_date, meal_type, content, created_at")
         .eq("meal_date", meal_date)
-        .order("id", desc=True)
+        .order("created_at", desc=True)
         .execute()
     )
 
@@ -29,12 +29,13 @@ def get_meals_by_date(meal_date):
         {
             "id": row["id"],
             "meal_date": row["meal_date"],
-            "meal_type": row["meal_type"],
-            "content": row["content"],
-            "created_at": format_bj_time(row["created_at"]),
+            "meal_type": row.get("meal_type") or "",
+            "content": row.get("content") or "",
+            "created_at": format_bj_time(row.get("created_at")),
         }
         for row in result.data
     ]
+
 
 def delete_meal(meal_id):
     supabase = get_supabase_client()
