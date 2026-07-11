@@ -2,25 +2,25 @@ from utils.supabase_client import get_supabase_client
 from utils.time_utils import now_bj_iso, format_bj_time
 
 # home - meals
-def add_meal(date, meal_type, content):
+def add_meal(meal_date, meal_type, content):
     supabase = get_supabase_client()
 
     return supabase.table("meals").insert({
-        "meal_date": date,
+        "meal_date": meal_date,
         "meal_type": meal_type,
         "content": content,
         "created_at": now_bj_iso(),
     }).execute()
 
 
-def get_meals_by_date(date):
+def get_meals_by_date(meal_date):
     supabase = get_supabase_client()
 
     result = (
         supabase
         .table("meals")
         .select("*")
-        .eq("meal_date", date)
+        .eq("meal_date", meal_date)
         .order("id", desc=True)
         .execute()
     )
