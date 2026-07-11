@@ -28,7 +28,7 @@ def get_meals_by_date(meal_date):
     return [
         {
             "id": row["id"],
-            "date": row["meal_date"],
+            "meal_date": row["meal_date"],
             "meal_type": row["meal_type"],
             "content": row["content"],
             "created_at": format_bj_time(row["created_at"]),
