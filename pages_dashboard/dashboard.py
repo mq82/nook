@@ -20,7 +20,7 @@ def render_dashboard():
     # Pingping supplements
     plans_result = (
         supabase
-        .table("pingping_supplement_plans")
+        .table("supplement_plans")
         .select("*")
         .eq("is_active", True)
         .lte("start_date", today)
@@ -34,7 +34,7 @@ def render_dashboard():
 
     checkins_result = (
         supabase
-        .table("pingping_supplement_checkins")
+        .table("supplement_plan_checkins")
         .select("*")
         .eq("checkin_date", today)
         .eq("is_taken", True)

@@ -14,7 +14,7 @@ def update_plan_active_status(plan_id, is_active):
 
     return (
         supabase
-        .table("pingping_supplement_plans")
+        .table("supplement_plans")
         .update({"is_active": is_active})
         .eq("id", plan_id)
         .execute()
@@ -53,7 +53,7 @@ def render_pingping_plan():
                 "is_active": True,
             }
 
-            supabase.table("pingping_supplement_plans").insert(data).execute()
+            supabase.table("supplement_plans").insert(data).execute()
             st.success("Supplement plan added successfully 💊")
 
     st.divider()
@@ -62,7 +62,7 @@ def render_pingping_plan():
 
     result = (
         supabase
-        .table("pingping_supplement_plans")
+        .table("supplement_plans")
         .select("*")
         .order("start_date", desc=True)
         .execute()

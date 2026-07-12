@@ -19,7 +19,7 @@ def render_pingping_checkin():
 
     plans_result = (
         supabase
-        .table("pingping_supplement_plans")
+        .table("supplement_plans")
         .select("*")
         .eq("is_active", True)
         .lte("start_date", str(checkin_date))
@@ -36,7 +36,7 @@ def render_pingping_checkin():
     
     checkin_result = (
         supabase
-        .table("pingping_supplement_checkins")
+        .table("supplement_plan_checkins")
         .select("*")
         .eq("checkin_date", str(checkin_date))
         .execute()
@@ -64,12 +64,12 @@ def render_pingping_checkin():
 
         if taken != already_taken:
             if existing:
-                supabase.table("pingping_supplement_checkins").update({
+                supabase.table("supplement_plan_checkins").update({
                     "is_taken": taken,
                     "taken_at": datetime.now(timezone.utc).isoformat() if taken else None
                 }).eq("id", existing["id"]).execute()
             else:
-                supabase.table("pingping_supplement_checkins").insert({
+                supabase.table("supplement_plan_checkins").insert({
                     "plan_id": plan_id,
                     "checkin_date": str(checkin_date),
                     "is_taken": taken,
@@ -84,7 +84,7 @@ def render_pingping_checkin():
 
     fresh_checkins_result = (
         supabase
-        .table("pingping_supplement_checkins")
+        .table("supplement_plan_checkins")
         .select("*")
         .eq("checkin_date", str(checkin_date))
         .eq("is_taken", True)
