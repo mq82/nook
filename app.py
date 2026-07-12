@@ -14,6 +14,7 @@ from pages_dashboard.dashboard import render_dashboard
 from pages_home.chores import render_chores
 from pages_home.meals import render_meals
 from pages_home.fridge_inventory import render_fridge_inventory
+from pages_home.shopping import render_shopping
 
 from pages_personal.vera_supplements import render_vera_supplements
 from pages_personal.pingping_plan import render_pingping_plan
@@ -92,9 +93,14 @@ with main_tab[0]:
 # -------- HOME --------
 with main_tab[1]:
     home_page = st.segmented_control(
-        "Choose Section",
-        ["Chores", "Meals", "Fridge Inventory"],
-        default = "Chores"
+        "",
+        [
+            "Chores",
+            "Meals",
+            "Fridge Inventory",
+            "Shopping",
+        ],
+        default = "Chores",
     )
 
     if home_page == "Chores":
@@ -103,6 +109,8 @@ with main_tab[1]:
         render_meals()
     elif home_page == "Fridge Inventory":
         render_fridge_inventory()
+    elif home_page == "Shopping":
+        render_shopping()
 
 # -------- PERSONAL DAILY --------
 with main_tab[2]:

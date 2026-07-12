@@ -203,3 +203,86 @@ def delete_inventory_item(item_id):
 
 # personal daily - vera supplements
 from utils.time_utils import beijing_day_utc_range
+
+# ---------------- Shopping ----------------
+
+def add_shopping_item(
+    name,
+    category,
+    quantity,
+    unit,
+    notes,
+):
+    supabase = get_supabase_client()
+
+    return (
+        supabase
+        .table("shopping_items")
+        .insert({
+            "name": name,
+            "category": category,
+            "quantity": quantity,
+            "unit": unit,
+            "notes": notes,
+            "is_purchased": False,
+        })
+        .execute()
+    )
+
+
+def get_shopping_items():
+    supabase = get_supabase_client()
+
+    result = (
+        supabase
+        .table("shopping_items")
+        .select("*")
+        .order("created_at")
+        .execute()
+    )
+
+    return result.data
+
+
+def mark_shopping_item_purchased(item_id):
+    from utils.time_utils import now_bj_iso
+
+    supabase = get_supabase_client()
+
+    return (
+        supabase
+        .table("shopping_items")
+        .update({
+            "is_purchased": True,
+            "purchased_at": now_bj_iso(),
+        })
+        .eq("id", item_id)
+        .execute()
+    )
+
+
+def undo_shopping_item(item_id):
+    supabase = get_supabase_client()
+
+    return (
+        supabase
+        .table("shopping_items")
+        .update({
+            "is_purchased": False,
+            "purchased_at": None,
+        })
+        .eq("id", item_id)
+        .execute()
+    )
+
+
+def delete_shopping_item(item_id):
+    supabase = get_supabase_client()
+
+    return (
+        supabase
+        .table("shopping_items")
+        .delete()
+        .eq("id", item_id)
+        .execute()
+    )

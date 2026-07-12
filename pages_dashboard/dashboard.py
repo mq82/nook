@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import date
 
 from utils.supabase_client import get_supabase_client
-from utils.home_db import get_meals_by_date, get_expiring_inventory_items
+from utils.home_db import get_meals_by_date, get_expiring_inventory_items, get_shopping_items
 from utils.time_utils import today_bj_date
 
 from services.dashboard_service import get_low_stock_supplement_bottles
@@ -58,6 +58,7 @@ def render_dashboard():
 
     vera_supplement_logs = supplement_result.data
 
+
     # Supplements low stock
     low_stock_supplements = get_low_stock_supplement_bottles(threshold=10)
 
@@ -77,6 +78,29 @@ def render_dashboard():
 
     # Fridge
     expiring_items = get_expiring_inventory_items(days=3)
+
+    expiring_items = sorted(
+        expiring_items,
+        key=lambda x: (
+            x["days_until_expiry"],
+            x["name"].lower()
+        )
+    )
+
+    # Shopping
+    shopping_items = get_shopping_items()
+
+    shopping_pending = [
+        item
+        for item in shopping_items
+        if not item["is_purchased"]
+    ]
+
+    shopping_purchased = [
+        item
+        for item in shopping_items
+        if item["is_purchased"]
+    ]
 
     # Kombucha
     kombucha_result = (
@@ -274,16 +298,6 @@ def render_dashboard():
         if item["days_until_expiry"] < 0
     ]
 
-    if expired_items:
-        attention_items.append(
-            f"{len(expired_items)} fridge item(s) already expired."
-        )
-
-    if expiring_today:
-        attention_items.append(
-            f"{len(expiring_today)} fridge item(s) expire today."
-        )
-
     if oldest_kombucha_days is not None:
         if oldest_kombucha_days >= 14:
             attention_items.append(
@@ -304,68 +318,180 @@ def render_dashboard():
         st.success("Nothing urgent today.")
 
     st.divider()
-    
-    st.markdown("### Personal")
+    st.markdown("### 👤 Personal")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("Vera Supplement Logs", len(vera_supplement_logs))
+        with st.container(border=True):
+            st.caption("Vera")
+            st.metric(
+                "Supplement Logs",
+                len(vera_supplement_logs)
+            )
 
     with col2:
-        st.metric("Pingping Supplements", f"{completed_pingping} / {total_pingping}")
-
-    if vera_supplement_logs:
-        st.caption("Vera supplements today")
-        for item in vera_supplement_logs:
-            st.markdown(
-                f'- **{item["supplement_name"]}**: '
-                f'{item["dosage"]} {item["unit"]}'
+        with st.container(border=True):
+            st.caption("Pingping")
+            st.metric(
+                "Supplements",
+                f"{completed_pingping}/{total_pingping}"
             )
-        
+    
+        if total_pingping > 0:
+            progress = completed_pingping / total_pingping
+
+            st.progress(progress)
+
     with col3:
-        if cycle_day:
-            st.metric("Cycle Day", f"Day {cycle_day}")
-        else:
-            st.metric("Cycle Day", "-")
+        with st.container(border=True):
+            st.caption("Cycle")
+
+            if cycle_day:
+                st.metric(
+                    "Today",
+                    f"Day {cycle_day}"
+                )
+            else:
+                st.metric(
+                    "Today",
+                    "-"
+                )
 
     st.divider()
+    st.markdown("### 🏠 Home")
 
-    st.markdown("### Home")
+# ---------- Meals ----------
 
-    col4, col5 = st.columns(2)
+    st.markdown("#### 🍽️ Meals Today")
 
-    with col4:
-        st.metric("Meals Logged Today", len(meals_today))
+    if not meals_today:
+        st.caption("No meals logged today.")
 
-    with col5:
-        st.metric("Expiring Fridge Items", len(expiring_items))
-
-    if meals_today:
-        st.caption("Meals today")
+    else:
         for meal in meals_today:
-            st.markdown(
-                f'- **{meal["meal_type"]}**: {meal["content"]}'
-            )
+            with st.container(border=True):
+
+                st.markdown(f"**{meal['meal_type']}**")
+                st.write(meal["content"])
+
+                if meal.get("created_at"):
+                    st.caption(meal["created_at"])
+
+# ---------- Inventory ----------
+
+    st.markdown("#### 🧊 Expiring Inventory")
 
     if expiring_items:
-        st.caption("Expiring fridge items")
+        st.caption(
+            f"{len(expiring_items)} item(s) need attention"
+        )
+
+    if not expiring_items:
+        st.caption("No items expiring within 3 days.")
+
+    else:
         for item in expiring_items:
-            days_left = item["days_until_expiry"]
+            days = item["days_until_expiry"]
 
-            if days_left < 0:
-                status = f"Expired {-days_left} day(s) ago"
-            elif days_left == 0:
-                status = "Expires today"
+            if days < 0:
+                icon = "❌"
+                message = f"Expired {-days} day(s) ago"
+
+            elif days == 0:
+                icon = "🔴"
+                message = "Expires today"
+
+            elif days == 1:
+                icon = "🟠"
+                message = "Expires tomorrow"
+
             else:
-                status = f"Expires in {days_left} day(s)"
+                icon = "🟢"
+                message = f"Expires in {days} days"
 
-            st.markdown(
-                f'- **{item["name"]}** ({item["location"]}) — {status}'
-            )
+            with st.container(border=True):
+                st.markdown(
+                    f"**{item['name']}**"
+                )
+
+                details = []
+
+                if item.get("category"):
+                    details.append(item["category"])
+
+                qty = f"{item['quantity']:g}"
+
+                if item.get("unit"):
+                    qty += f" {item['unit']}"
+
+                details.append(qty)
+
+                if item.get("location"):
+                    details.append(f"📍 {item['location']}")
+
+                st.caption(" · ".join(details))
+                st.markdown(f"{icon} {message}")
+
+                notes = (item.get("notes") or "").strip()
+
+                if notes:
+                    st.caption(f"📝 {notes}")
 
     st.divider()
+    st.markdown("### 🛒 Shopping")
 
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            st.metric(
+                "To Buy",
+                len(shopping_pending)
+            )
+
+    with col2:
+        with st.container(border=True):
+            st.metric(
+                "Purchased",
+                len(shopping_purchased)
+            )
+
+    if shopping_pending:
+        st.markdown("#### Shopping List")
+
+        for item in shopping_pending:
+            with st.container(border=True):
+
+                st.markdown(
+                    f"**{item['name']}**"
+                )
+
+                details = []
+
+                if item.get("category"):
+                    details.append(item["category"])
+
+                if item.get("quantity"):
+                    qty = f"{item['quantity']:g}"
+
+                    if item.get("unit"):
+                        qty += f" {item['unit']}"
+
+                    details.append(qty)
+
+                if details:
+                    st.caption(
+                        " · ".join(details)
+                    )
+
+                notes = (item.get("notes") or "").strip()
+
+                if notes:
+                    st.caption(f"📝 {notes}")
+    
+    
+    st.divider()
     st.markdown("### Fermentation")
 
     col6, col7 = st.columns(2)
@@ -385,7 +511,6 @@ def render_dashboard():
         )
 
     st.divider()
-
     st.markdown("### Ballet")
 
     col8, col9 = st.columns(2)

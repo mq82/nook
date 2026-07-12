@@ -80,54 +80,76 @@ def render_fridge_inventory():
     col5, col6 = st.columns(2)
 
     with col5:
-        location_filter = st.selectbox("Filter by Location", location_options)
+        location_filter = st.selectbox(
+            "Location",
+            location_options
+       )
 
     with col6:
-        category_filter = st.selectbox("Filter by Category", category_options)
+        category_filter = st.selectbox(
+            "Category",
+            category_options
+        )
 
     filtered_df = df.copy()
 
     if location_filter != "All":
-        filtered_df = filtered_df[filtered_df["location"] == location_filter]
+        filtered_df = filtered_df[
+            filtered_df["location"] == location_filter
+        ]
 
     if category_filter != "All":
-        filtered_df = filtered_df[filtered_df["category"] == category_filter]
+        filtered_df = filtered_df[
+            filtered_df["category"] == category_filter
+        ]
 
-    display_columns = [
-        "name",
-        "category",
-        "location",
-        "quantity",
-        "unit",
-        "purchase_date",
+    filtered_df = filtered_df.sort_values(
         "expiry_date",
-        "days_until_expiry",
-        "notes",
-    ]
-
-    existing_columns = [col for col in display_columns if col in filtered_df.columns]
-
-    st.dataframe(
-        filtered_df[existing_columns],
-        use_container_width=True,
-        hide_index=True
+        ascending=True,
+        na_position="last"
     )
 
     st.divider()
-    st.subheader("Remove Item")
+    
+    for _, item in filtered_df.iterrows():
+        col1, col2 = st.columns([8,1])
+        
+        with col1:
+            st.markdown(f"### {item['name']}")
+            info = f"{item['quantity']:g} {item['unit']}"
 
-    item_options = {
-        f'{row["name"]} | {row["location"]} | expires {row.get("expiry_date", "")}': row["id"]
-        for _, row in filtered_df.iterrows()
-    }
+            if item["location"]:
+                info += f" · 📍 {item['location']}"
 
-    if item_options:
-        selected_item = st.selectbox(
-            "Choose item to remove",
-            list(item_options.keys())
-        )
+            st.caption(info)
 
-        if st.button("Remove Selected Item", use_container_width=True):
-            delete_inventory_item(item_options[selected_item])
-            st.success("Item removed.")
-            st.rerun()
+            if pd.notna(item["expiry_date"]):
+                days = int(item["days_until_expiry"])
+
+                if days < 0:
+                    st.error(f"Expired {-days} day(s) ago")
+
+                elif days == 0:
+                    st.warning("Expires today")
+    
+                elif days == 1:
+                    st.warning("Expires tomorrow")
+
+                else:
+                    st.caption(f"Expires in {days} days")
+
+            if item["notes"]:
+                st.caption(item["notes"])
+
+        with col2:
+
+            if st.button(
+                "🗑",
+                key=f"delete_inventory_{item['id']}",
+                use_container_width=True
+            ):
+                delete_inventory_item(item["id"])
+                st.success("Item deleted.")
+                st.rerun()
+
+        st.divider()
