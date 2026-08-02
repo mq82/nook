@@ -21,20 +21,36 @@ def get_meals_by_date(meal_date):
         .table("meals")
         .select("id, meal_date, meal_type, content, created_at")
         .eq("meal_date", meal_date)
-        .order("created_at", desc=True)
         .execute()
     )
 
-    return [
+    meal_order = {
+        "Breakfast": 1,
+        "Lunch": 2,
+        "Dinner": 3,
+        "Snack": 4,
+        "Other": 5,
+    }
+
+    meals = [
         {
             "id": row["id"],
             "meal_date": row["meal_date"],
-            "meal_type": row.get("meal_type") or "",
-            "content": row.get("content") or "",
-            "created_at": format_bj_time(row.get("created_at")),
+            "meal_type": row["meal_type"],
+            "content": row["content"],
+            "created_at": format_bj_time(row["created_at"]),
         }
         for row in result.data
     ]
+
+    meals.sort(
+        key=lambda x: (
+            meal_order.get(x["meal_type"], 99),
+            x["created_at"],
+        )
+    )
+
+    return meals
 
 
 def delete_meal(meal_id):

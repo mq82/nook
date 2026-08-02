@@ -67,26 +67,39 @@ def render_meals():
         st.caption("No meals recorded on this date.")
         return
 
+    meal_icons = {
+        "Breakfast": "🌅",
+        "Lunch": "☀️",
+        "Dinner": "🌙",
+        "Snack": "🍎",
+        "Other": "🍽️",
+    }
+
     for meal in meals:
+        icon = meal_icons.get(meal["meal_type"], "🍽️")
+
         col1, col2 = st.columns([6, 1.5])
 
         with col1:
-            st.markdown(
-                f"**{meal['meal_type']}** — {meal['content']}"
-            )
-            st.caption(
-                f"Meal date: {meal['meal_date']} · "
-                f"Created at: {meal['created_at']}"
-            )
+            with st.container(border=True):
+                st.markdown(
+                    f"### {icon} {meal['meal_type']}"
+                )
+
+                st.markdown(
+                    meal["content"]
+                )
+
+                st.caption(
+                    f"🕒 {meal['created_at']}"
+                )
 
         with col2:
             if st.button(
-                "Delete",
+                "✕",
                 key=f"delete_meal_{meal['id']}",
                 use_container_width=True,
             ):
                 delete_meal(meal["id"])
                 st.success("Meal deleted.")
                 st.rerun()
-
-        st.divider()

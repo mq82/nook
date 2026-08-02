@@ -3,10 +3,347 @@ import pandas as pd
 from datetime import date
 
 from utils.supabase_client import get_supabase_client
-from utils.home_db import get_meals_by_date, get_expiring_inventory_items, get_shopping_items
+from utils.home_db import get_meals_by_date, get_expiring_inventory_items, get_shopping_items, get_all_chores
 from utils.time_utils import today_bj_date
 
-from services.dashboard_service import get_low_stock_supplement_bottles
+from services.dashboard_service import (
+    get_personal_dashboard,
+    get_home_dashboard,
+    get_lifestyle_dashboard,
+    get_period_dashboard,
+)
+
+def render_attention(attention_items):
+    st.markdown("### Attention")
+
+    if attention_items:
+        for item in attention_items:
+            st.warning(item)
+    else:
+        st.success("Nothing urgent today.")
+
+
+def render_personal(
+    vera_logs,
+    completed_pingping,
+    total_pingping,
+):
+    st.markdown("### 👤 Personal")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.container(border=True):
+            st.metric(
+                "Vera",
+                f"{vera_logs} log(s)"
+            )
+    with col2:
+        with st.container(border=True):
+            st.metric(
+                "Ping Ping",
+                f"{completed_pingping}/{total_pingping}"
+            )
+
+def render_chores(
+    todo_chores,
+    completed_chores,
+):
+    st.divider()
+
+    st.markdown("### 🧹 Chores")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            st.metric(
+                "To Do",
+                len(todo_chores),
+            )
+
+    with col2:
+        with st.container(border=True):
+            st.metric(
+                "Completed",
+                len(completed_chores),
+            )
+
+    if not todo_chores:
+        return
+
+    st.markdown("#### Pending Chores")
+
+    for chore in todo_chores:
+
+        with st.container(border=True):
+
+            st.markdown(
+                f"☐ **{chore['title']}**"
+            )
+
+            st.caption(
+                f"Created {chore['created_at']}"
+            )
+
+
+def render_shopping(
+    shopping_pending,
+    shopping_purchased,
+):
+    st.divider()
+
+    st.markdown("### 🛒 Shopping")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            st.metric(
+                "To Buy",
+                len(shopping_pending),
+            )
+
+    with col2:
+        with st.container(border=True):
+            st.metric(
+                "Purchased",
+                len(shopping_purchased),
+            )
+
+    if not shopping_pending:
+        return
+
+    st.markdown("#### Shopping List")
+
+    for item in shopping_pending:
+
+        with st.container(border=True):
+
+            st.markdown(
+                f"**{item['name']}**"
+            )
+
+            details = []
+
+            if item.get("category"):
+                details.append(item["category"])
+
+            if item.get("quantity"):
+
+                qty = f"{item['quantity']:g}"
+
+                if item.get("unit"):
+                    qty += f" {item['unit']}"
+
+                details.append(qty)
+
+            if details:
+                st.caption(
+                    " · ".join(details)
+                )
+
+            notes = (
+                item.get("notes") or ""
+            ).strip()
+
+            if notes:
+                st.caption(
+                    f"📝 {notes}"
+                )
+
+
+def render_fermentation(
+    active_kombucha,
+    oldest_kombucha_days,
+    oldest_kombucha_name,
+):
+    st.divider()
+
+    st.markdown("### 🌱 Fermentation")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Active Kombucha",
+            len(active_kombucha),
+        )
+
+    with col2:
+
+        if oldest_kombucha_days is None:
+
+            st.metric(
+                "Oldest Batch",
+                "-",
+            )
+
+        else:
+
+            st.metric(
+                "Oldest Batch",
+                f"Day {oldest_kombucha_days}",
+            )
+
+    if oldest_kombucha_name:
+
+        st.caption(
+            f"{oldest_kombucha_name} · Day {oldest_kombucha_days}"
+        )
+
+
+def render_ballet(
+    ballet_hours,
+    ballet_this_month_hours,
+    last_class,
+):
+    st.divider()
+
+    st.markdown("### 🩰 Ballet")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.metric(
+            "Total",
+            f"{ballet_hours:.1f} hrs",
+        )
+
+    with col2:
+
+        st.metric(
+            "This Month",
+            f"{ballet_this_month_hours:.1f} hrs",
+        )
+
+    if last_class:
+
+        st.caption(
+            f'{last_class["class_date"]} · '
+            f'{last_class.get("studio") or ""} · '
+            f'{last_class.get("teacher") or ""}'
+        )
+
+
+
+def render_low_stock(low_stock_supplements):
+
+    if not low_stock_supplements:
+        return
+
+    st.divider()
+
+    st.subheader("Low Stock Supplements")
+
+    for item in low_stock_supplements:
+
+        st.warning(
+            f'{item["supplement_name"]} | '
+            f'{item["brand"]} | '
+            f'{item["remaining"]:g} {item["unit"]} left'
+        )
+
+def render_meals(meals_today):
+
+    st.markdown("#### 🍽️ Meals Today")
+
+    if not meals_today:
+        st.caption("No meals logged today.")
+        return
+
+    for meal in meals_today:
+
+        with st.container(border=True):
+
+            st.markdown(
+                f"**{meal['meal_type']}**"
+            )
+
+            st.write(
+                meal["content"]
+            )
+
+            if meal.get("created_at"):
+                st.caption(
+                    meal["created_at"]
+                )
+
+def render_inventory(expiring_items):
+
+    st.markdown("#### 🧊 Expiring Inventory")
+
+    if expiring_items:
+        st.caption(
+            f"{len(expiring_items)} item(s) need attention"
+        )
+
+    if not expiring_items:
+        st.caption("No items expiring within 3 days.")
+        return
+
+    for item in expiring_items:
+
+        days = item["days_until_expiry"]
+
+        if days < 0:
+            icon = "❌"
+            message = f"Expired {-days} day(s) ago"
+
+        elif days == 0:
+            icon = "🔴"
+            message = "Expires today"
+
+        elif days == 1:
+            icon = "🟠"
+            message = "Expires tomorrow"
+
+        else:
+            icon = "🟢"
+            message = f"Expires in {days} days"
+
+        with st.container(border=True):
+
+            st.markdown(
+                f"**{item['name']}**"
+            )
+
+            details = []
+
+            if item.get("category"):
+                details.append(item["category"])
+
+            qty = f"{item['quantity']:g}"
+
+            if item.get("unit"):
+                qty += f" {item['unit']}"
+
+            details.append(qty)
+
+            if item.get("location"):
+                details.append(
+                    f"📍 {item['location']}"
+                )
+
+            st.caption(
+                " · ".join(details)
+            )
+
+            st.markdown(
+                f"{icon} {message}"
+            )
+
+            notes = (
+                item.get("notes") or ""
+            ).strip()
+
+            if notes:
+                st.caption(
+                    f"📝 {notes}"
+                )
+
+
+
 
 def render_dashboard():
     st.subheader("Today Overview")
@@ -17,247 +354,49 @@ def render_dashboard():
 
     # ---------------- Data ----------------
 
-    # Pingping supplements
-    plans_result = (
-        supabase
-        .table("supplement_plans")
-        .select("*")
-        .eq("is_active", True)
-        .lte("start_date", today)
-        .or_(f"end_date.is.null,end_date.gte.{today}")
-        .execute()
+    # Personal Dashboard
+    personal = get_personal_dashboard(today)
+    vera_supplement_logs = personal["vera_logs"]
+    completed_pingping = personal["completed_pingping"]
+    total_pingping = personal["total_pingping"]
+    low_stock_supplements = personal["low_stock"]
+
+    # Home Dashboard
+    home = get_home_dashboard(today)
+    meals_today = home["meals_today"]
+    expiring_items = home["expiring_items"]
+    shopping_pending = home["shopping_pending"]
+    shopping_purchased = home["shopping_purchased"]
+    todo_chores = home["todo_chores"]
+    completed_chores = home["completed_chores"]
+
+    # Lifestyle Dashboard
+    lifestyle = get_lifestyle_dashboard(
+        today,
+        today_date,
     )
 
-    active_plans = plans_result.data
-    total_pingping = len(active_plans)
-    active_plan_ids = {plan["id"] for plan in active_plans}
+    active_kombucha = lifestyle["active_kombucha"]
+    oldest_kombucha_days = lifestyle["oldest_kombucha_days"]
+    oldest_kombucha_name = lifestyle["oldest_kombucha_name"]
+    ballet_hours = lifestyle["ballet_hours"]
+    ballet_this_month_hours = lifestyle["ballet_this_month_hours"]
+    last_class = lifestyle["last_class"]
 
-    checkins_result = (
-        supabase
-        .table("supplement_plan_checkins")
-        .select("*")
-        .eq("checkin_date", today)
-        .eq("is_taken", True)
-        .execute()
+    # Period Dashboard
+    period = get_period_dashboard(
+        today,
+        today_date,
     )
 
-    completed_pingping = len([
-        item for item in checkins_result.data
-        if item["plan_id"] in active_plan_ids
-    ])
-
-    # Vera supplements
-    supplement_result = (
-        supabase
-        .table("supplement_logs")
-        .select("*")
-        .gte("taken_at", f"{today}T00:00:00+08:00")
-        .lt("taken_at", f"{today}T23:59:59+08:00")
-        .execute()
-    )
-
-    vera_supplement_logs = supplement_result.data
+    cycle_day = period["cycle_day"]
+    latest_period_start = period["latest_period_start"]
+    latest_period_end = period["latest_period_end"]
+    predicted_next_period = period["predicted_next_period"]
+    days_until_next_period = period["days_until_next_period"]
+    today_daily_log = period["today_daily_log"]
 
 
-    # Supplements low stock
-    low_stock_supplements = get_low_stock_supplement_bottles(threshold=10)
-
-    if low_stock_supplements:
-        st.divider()
-        st.subheader("Low Stock Supplements")
-
-        for item in low_stock_supplements:
-            st.warning(
-                f'{item["supplement_name"]} | '
-                f'{item["brand"]} | '
-                f'{item["remaining"]:g} {item["unit"]} left'
-            )
-
-    # Meals
-    meals_today = get_meals_by_date(today)
-
-    # Fridge
-    expiring_items = get_expiring_inventory_items(days=3)
-
-    expiring_items = sorted(
-        expiring_items,
-        key=lambda x: (
-            x["days_until_expiry"],
-            x["name"].lower()
-        )
-    )
-
-    # Shopping
-    shopping_items = get_shopping_items()
-
-    shopping_pending = [
-        item
-        for item in shopping_items
-        if not item["is_purchased"]
-    ]
-
-    shopping_purchased = [
-        item
-        for item in shopping_items
-        if item["is_purchased"]
-    ]
-
-    # Kombucha
-    kombucha_result = (
-        supabase
-        .table("kombucha_batches")
-        .select("*")
-        .eq("status", "Active")
-        .order("start_date", desc=False)
-        .execute()
-    )
-
-    active_kombucha = kombucha_result.data
-
-    oldest_kombucha_days = None
-    oldest_kombucha_name = None
-
-    if active_kombucha:
-        oldest = active_kombucha[0]
-        start = pd.to_datetime(oldest["start_date"]).date()
-        oldest_kombucha_days = (today_date - start).days
-        oldest_kombucha_name = oldest["batch_name"]
-
-    # Ballet
-    ballet_result = (
-        supabase
-        .table("ballet_classes")
-        .select("duration_hours")
-        .execute()
-    )
-
-    ballet_hours = sum(
-        item["duration_hours"] for item in ballet_result.data
-    ) if ballet_result.data else 0
-
-    # Ballet this month + last class
-    current_month = today[:7]
-
-    ballet_month_result = (
-        supabase
-        .table("ballet_classes")
-        .select("*")
-        .gte("class_date", f"{current_month}-01")
-        .execute()
-    )
-
-    ballet_this_month_hours = sum(
-        item["duration_hours"] for item in ballet_month_result.data
-    ) if ballet_month_result.data else 0
-
-    last_class_result = (
-        supabase
-        .table("ballet_classes")
-        .select("*")
-        .order("class_date", desc=True)
-        .limit(1)
-        .execute()
-    )
-
-    last_class = last_class_result.data[0] if last_class_result.data else None
-
-    # Period tracker
-    period_result = (
-        supabase
-        .table("cycle_periods")
-        .select("*")
-        .order("start_date", desc=True)
-        .limit(1)
-        .execute()
-    )
-
-    latest_period = period_result.data[0] if period_result.data else None
-
-    cycle_day = None
-    latest_period_start = None
-    latest_period_end = None
-
-    if latest_period:
-        latest_period_start = pd.to_datetime(latest_period["start_date"]).date()
-        latest_period_end = (
-            pd.to_datetime(latest_period["end_date"]).date()
-            if latest_period.get("end_date")
-            else None
-        )
-        cycle_day = (today_date - latest_period_start).days + 1
-
-    if latest_period_start:
-        if latest_period_end:
-            st.caption(
-                f"Latest period: {latest_period_start} → {latest_period_end}"
-            )
-        else:
-            st.caption(
-                f"Latest period started on {latest_period_start}"
-            )
-
-    predicted_next_period = None
-    days_until_next_period = None
-
-    period_history_result = (
-        supabase
-        .table("cycle_periods")
-        .select("*")
-        .order("start_date", desc=False)
-        .execute()
-    )
-
-    period_history = period_history_result.data
-
-    if len(period_history) >= 2 and latest_period_start:
-        period_df = pd.DataFrame(period_history)
-        period_df["start_date"] = pd.to_datetime(period_df["start_date"])
-        period_df = period_df.sort_values("start_date")
-
-        period_df["cycle_length_days"] = (
-            period_df["start_date"]
-            .diff()
-            .dt.days
-        )
-
-        recent_cycle_lengths = (
-            period_df["cycle_length_days"]
-            .dropna()
-            .tail(6)
-        )
-
-        if not recent_cycle_lengths.empty:
-            avg_cycle_length = int(round(recent_cycle_lengths.mean()))
-            predicted_next_period = latest_period_start + pd.Timedelta(days=avg_cycle_length)
-            days_until_next_period = (predicted_next_period - today_date).days
-
-    if predicted_next_period is not None:
-        st.caption(
-            f"Estimated next period: {predicted_next_period} "
-            f"({days_until_next_period} day(s) left)"
-        )
-
-    # Period daily log today
-    daily_log_result = (
-        supabase
-        .table("daily_logs")
-        .select("*")
-        .eq("log_date", today)
-        .limit(1)
-        .execute()
-    )
-
-    today_daily_log = daily_log_result.data[0] if daily_log_result.data else None
-
-    if today_daily_log:
-        st.caption(
-            f'Period daily log today: '
-            f'energy {today_daily_log.get("energy_level")}/10 · '
-            f'stress {today_daily_log.get("stress_level")}/10 · '
-            f'pain {today_daily_log.get("lower_ab_pain")}/10'
-        )
-    else:
-        st.caption("No period daily log today.")
 
     # Attention Center
     attention_items = []
@@ -288,6 +427,11 @@ def render_dashboard():
             f"Pingping has {remaining_pingping} supplement(s) unchecked today."
         )
 
+    if todo_chores:
+        attention_items.append(
+            f"{len(todo_chores)} chore(s) still pending."
+        )
+
     expiring_today = [
         item for item in expiring_items
         if item["days_until_expiry"] == 0
@@ -308,222 +452,49 @@ def render_dashboard():
                 f"Kombucha is on Day {oldest_kombucha_days}. Good time to taste-check."
             )
 
+
+
     # ---------------- Display ----------------
-    st.markdown("### Attention")
 
-    if attention_items:
-        for item in attention_items:
-            st.warning(item)
-    else:
-        st.success("Nothing urgent today.")
+    render_attention(attention_items)
 
-    st.divider()
-    st.markdown("### 👤 Personal")
+    render_personal(
+        len(vera_supplement_logs),
+            completed_pingping,
+            total_pingping
+    )
 
-    col1, col2, col3 = st.columns(3)
+    render_low_stock(
+        low_stock_supplements,
+    )
 
-    with col1:
-        with st.container(border=True):
-            st.caption("Vera")
-            st.metric(
-                "Supplement Logs",
-                len(vera_supplement_logs)
-            )
+    render_meals(
+        meals_today,
+    )
 
-    with col2:
-        with st.container(border=True):
-            st.caption("Pingping")
-            st.metric(
-                "Supplements",
-                f"{completed_pingping}/{total_pingping}"
-            )
+    render_inventory(
+        expiring_items,
+    )
+
+    render_chores(
+        todo_chores,
+        completed_chores
+    )
+
+    render_shopping(
+        shopping_pending,
+        shopping_purchased
+    )
+
+    render_fermentation(
+        active_kombucha,
+        oldest_kombucha_days,
+        oldest_kombucha_name
+    )
+
+    render_ballet(
+        ballet_hours,
+        ballet_this_month_hours,
+        last_class
+    )
     
-        if total_pingping > 0:
-            progress = completed_pingping / total_pingping
-
-            st.progress(progress)
-
-    with col3:
-        with st.container(border=True):
-            st.caption("Cycle")
-
-            if cycle_day:
-                st.metric(
-                    "Today",
-                    f"Day {cycle_day}"
-                )
-            else:
-                st.metric(
-                    "Today",
-                    "-"
-                )
-
-    st.divider()
-    st.markdown("### 🏠 Home")
-
-# ---------- Meals ----------
-
-    st.markdown("#### 🍽️ Meals Today")
-
-    if not meals_today:
-        st.caption("No meals logged today.")
-
-    else:
-        for meal in meals_today:
-            with st.container(border=True):
-
-                st.markdown(f"**{meal['meal_type']}**")
-                st.write(meal["content"])
-
-                if meal.get("created_at"):
-                    st.caption(meal["created_at"])
-
-# ---------- Inventory ----------
-
-    st.markdown("#### 🧊 Expiring Inventory")
-
-    if expiring_items:
-        st.caption(
-            f"{len(expiring_items)} item(s) need attention"
-        )
-
-    if not expiring_items:
-        st.caption("No items expiring within 3 days.")
-
-    else:
-        for item in expiring_items:
-            days = item["days_until_expiry"]
-
-            if days < 0:
-                icon = "❌"
-                message = f"Expired {-days} day(s) ago"
-
-            elif days == 0:
-                icon = "🔴"
-                message = "Expires today"
-
-            elif days == 1:
-                icon = "🟠"
-                message = "Expires tomorrow"
-
-            else:
-                icon = "🟢"
-                message = f"Expires in {days} days"
-
-            with st.container(border=True):
-                st.markdown(
-                    f"**{item['name']}**"
-                )
-
-                details = []
-
-                if item.get("category"):
-                    details.append(item["category"])
-
-                qty = f"{item['quantity']:g}"
-
-                if item.get("unit"):
-                    qty += f" {item['unit']}"
-
-                details.append(qty)
-
-                if item.get("location"):
-                    details.append(f"📍 {item['location']}")
-
-                st.caption(" · ".join(details))
-                st.markdown(f"{icon} {message}")
-
-                notes = (item.get("notes") or "").strip()
-
-                if notes:
-                    st.caption(f"📝 {notes}")
-
-    st.divider()
-    st.markdown("### 🛒 Shopping")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        with st.container(border=True):
-            st.metric(
-                "To Buy",
-                len(shopping_pending)
-            )
-
-    with col2:
-        with st.container(border=True):
-            st.metric(
-                "Purchased",
-                len(shopping_purchased)
-            )
-
-    if shopping_pending:
-        st.markdown("#### Shopping List")
-
-        for item in shopping_pending:
-            with st.container(border=True):
-
-                st.markdown(
-                    f"**{item['name']}**"
-                )
-
-                details = []
-
-                if item.get("category"):
-                    details.append(item["category"])
-
-                if item.get("quantity"):
-                    qty = f"{item['quantity']:g}"
-
-                    if item.get("unit"):
-                        qty += f" {item['unit']}"
-
-                    details.append(qty)
-
-                if details:
-                    st.caption(
-                        " · ".join(details)
-                    )
-
-                notes = (item.get("notes") or "").strip()
-
-                if notes:
-                    st.caption(f"📝 {notes}")
-    
-    
-    st.divider()
-    st.markdown("### Fermentation")
-
-    col6, col7 = st.columns(2)
-
-    with col6:
-        st.metric("Active Kombucha Batches", len(active_kombucha))
-
-    with col7:
-        if oldest_kombucha_days is not None:
-            st.metric("Oldest Kombucha Batch", f"Day {oldest_kombucha_days}")
-        else:
-            st.metric("Oldest Kombucha Batch", "-")
-
-    if oldest_kombucha_name is not None:
-        st.caption(
-            f"Active kombucha: {oldest_kombucha_name} · Day {oldest_kombucha_days}"
-        )
-
-    st.divider()
-    st.markdown("### Ballet")
-
-    col8, col9 = st.columns(2)
-
-    with col8:
-        st.metric("Total Ballet Hours", f"{ballet_hours:.1f} hrs")
-
-    with col9:
-        st.metric("This Month", f"{ballet_this_month_hours:.1f} hrs")
-
-    if last_class:
-        st.caption(
-            f'Last class: {last_class["class_date"]} · '
-            f'{last_class.get("studio") or ""} · '
-            f'{last_class.get("teacher") or ""}'
-        )

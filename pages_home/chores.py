@@ -31,6 +31,15 @@ def render_chores():
     todo_chores = [chore for chore in chores if not chore["completed"]]
     done_chores = [chore for chore in chores if chore["completed"]]
 
+    todo_chores.sort(
+        key=lambda x: x["created_at"]
+    )
+
+    done_chores.sort(
+        key=lambda x: x["completed_at"],
+        reverse=True,
+    )
+
     st.subheader("To Do")
 
     if not todo_chores:
@@ -40,15 +49,24 @@ def render_chores():
             col1, col2 = st.columns([6, 1.5])
 
             with col1:
-                st.markdown(f"### ○ {chore['title']}")
-                st.caption(f"Created at {chore['created_at']}")
+                with st.container(border=True):
+                    st.markdown(f"### ☐ {chore['title']}")
+                    st.caption(f"Created {chore['created_at']}")
 
             with col2:
-                if st.button("Done", key=f"complete_{chore['id']}", use_container_width=True):
+                if st.button(
+                    "✅",
+                    key=f"complete_{chore['id']}",
+                    use_container_width=True,
+                ):
                     complete_chore(chore["id"], current_user)
                     st.rerun()
 
-                if st.button("Delete", key=f"delete_todo_{chore['id']}", use_container_width=True):
+                if st.button(
+                    "🗑",
+                    key=f"delete_todo_{chore['id']}",
+                    use_container_width=True,
+                ):
                     delete_chore(chore["id"])
                     st.success("Chore deleted.")
                     st.rerun()
@@ -60,21 +78,21 @@ def render_chores():
             st.caption("No completed chores yet.")
         else:
             for chore in done_chores:
-                col1, col2 = st.columns([6, 1.5])
+                col1, col2 = st.columns([8, 1])
 
                 with col1:
-                    st.markdown(f"### ✓ ~~{chore['title']}~~")
-                    st.caption(
-                        f"Done by {chore['completed_by']} "
-                        f"at {chore['completed_at']}"
-                    )
+                    with st.container(border=True):
+                        st.markdown(f"### ✅ ~~{chore['title']}~~")
+                        st.caption(
+                            f"Done by {chore['completed_by']} · {chore['completed_at']}"
+                        )
 
                 with col2:
-                    if st.button("Undo", key=f"undo_{chore['id']}", use_container_width=True):
+                    if st.button("↩️", key=f"undo_{chore['id']}", use_container_width=True):
                         undo_chore(chore["id"])
                         st.rerun()
 
-                    if st.button("Delete", key=f"delete_done_{chore['id']}", use_container_width=True):
+                    if st.button("🗑", key=f"delete_done_{chore['id']}", use_container_width=True):
                         delete_chore(chore["id"])
                         st.success("Chore deleted.")
                         st.rerun()
