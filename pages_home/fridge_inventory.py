@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
 
-from utils.home_db import (
+from utils.time_utils import today_bj_date
+from services.home_service import (
     add_inventory_item,
     get_inventory_items,
     delete_inventory_item,
@@ -33,9 +33,9 @@ def render_fridge_inventory():
 
         col3, col4 = st.columns(2)
         with col3:
-            purchase_date = st.date_input("Purchase Date", value=date.today())
+            purchase_date = st.date_input("Purchase Date", value=today_bj_date())
         with col4:
-            expiry_date = st.date_input("Expiry Date", value=date.today())
+            expiry_date = st.date_input("Expiry Date", value=today_bj_date())
 
         notes = st.text_area("Notes")
 
@@ -70,7 +70,6 @@ def render_fridge_inventory():
 
     if "expiry_date" in df.columns:
         df["expiry_date"] = pd.to_datetime(df["expiry_date"])
-        df["days_until_expiry"] = (df["expiry_date"].dt.date - date.today()).apply(lambda x: x.days)
 
     st.subheader("Current Inventory")
 

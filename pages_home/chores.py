@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.home_db import (
+from services.home_service import (
     add_chore,
     get_all_chores,
     complete_chore,
@@ -27,18 +27,8 @@ def render_chores():
     st.divider()
 
     chores = get_all_chores()
-
-    todo_chores = [chore for chore in chores if not chore["completed"]]
-    done_chores = [chore for chore in chores if chore["completed"]]
-
-    todo_chores.sort(
-        key=lambda x: x["created_at"]
-    )
-
-    done_chores.sort(
-        key=lambda x: x["completed_at"],
-        reverse=True,
-    )
+    todo_chores = chores["todo"]
+    done_chores = chores["completed"]
 
     st.subheader("To Do")
 

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils.home_db import (
+from services.home_service import (
     add_shopping_item,
     get_shopping_items,
     mark_shopping_item_purchased,
@@ -75,19 +75,9 @@ def render_shopping():
 
     st.divider()
 
-    items = get_shopping_items()
-
-    pending_items = [
-        item
-        for item in items
-        if not item["is_purchased"]
-    ]
-
-    purchased_items = [
-        item
-        for item in items
-        if item["is_purchased"]
-    ]
+    shopping = get_shopping_items()
+    pending_items = shopping["pending"]
+    purchased_items = shopping["purchased"]
 
     st.markdown("## 🛒 To Buy")
 

@@ -64,7 +64,8 @@ def render_settings():
     new_status = st.selectbox(
         "New Status",
         [True, False],
-        format_func=lambda x: "Active" if x else "Inactive"
+        format_func=lambda x: "Active" if x else "Inactive",
+        key="settings_new_status",
     )
 
     if st.button(

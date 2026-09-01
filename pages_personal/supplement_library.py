@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
-from utils.supabase_client import get_supabase_client
-from utils.supplement_db import calculate_bottle_remaining
-
+from services.supplement_library_service import (
+    get_all_supplements,
+    get_active_supplements,
+    add_supplement,
+    update_supplement_status,
+    add_bottle,
+    get_bottle_rows,
+    update_bottle,
+)
 
 def render_supplement_library():
     st.subheader("Supplement Library")
-
-    supabase = get_supabase_client()
 
     page = st.segmented_control(
         "Choose Section",
@@ -16,13 +20,12 @@ def render_supplement_library():
     )
 
     if page == "Supplements":
-        render_supplements_section(supabase)
-
+        render_supplements_section()
     elif page == "Bottles":
-        render_bottles_section(supabase)
+        render_bottles_section()
 
 
-def render_supplements_section(supabase):
+def render_supplements_section():
     st.markdown("### Supplements")
 
     with st.form("add_supplement_entity_form", clear_on_submit=True):
@@ -31,43 +34,31 @@ def render_supplements_section(supabase):
         default_unit = st.text_input("Default Unit", placeholder="e.g. mg, IU, capsule(s)")
         description = st.text_area("Description")
         notes = st.text_area("Notes")
-
         submitted = st.form_submit_button("Add Supplement", use_container_width=True)
 
         if submitted:
-            if name.strip():
-                supabase.table("supplements").insert({
-                    "name": name.strip(),
-                    "category": category.strip() or None,
-                    "default_unit": default_unit.strip() or None,
-                    "description": description.strip() or None,
-                    "notes": notes.strip() or None,
-                    "is_active": True,
-                }).execute()
+            if not name.strip():
+                st.warning("Please enter supplement name.")
+            else:
+                add_supplement(
+                    name=name.strip(),
+                    category=category.strip() or None,
+                    default_unit=default_unit.strip() or None,
+                    description=description.strip() or None,
+                    notes=notes.strip() or None,
+                )
 
                 st.success("Supplement added.")
                 st.rerun()
-            else:
-                st.warning("Please enter supplement name.")
 
     st.divider()
 
-    result = (
-        supabase
-        .table("supplements")
-        .select("*")
-        .order("name", desc=False)
-        .execute()
-    )
-
-    records = result.data
-
+    records = get_all_supplements()
     if not records:
         st.info("No supplements yet.")
         return
 
     df = pd.DataFrame(records)
-
     st.dataframe(
         df[["name", "category", "default_unit", "is_active", "notes"]],
         use_container_width=True,
@@ -100,28 +91,19 @@ def render_supplements_section(supabase):
         key="supplement_library_update_status",
         use_container_width=True
     ):
-        supabase.table("supplements").update({
-            "is_active": new_status
-        }).eq("id", supplement_options[selected]).execute()
+        update_supplement_status(
+            supplement_options[selected],
+            new_status,
+        )
 
         st.success("Supplement status updated.")
         st.rerun()
 
 
-def render_bottles_section(supabase):
+def render_bottles_section():
     st.markdown("### Supplement Bottles")
 
-    supplements_result = (
-        supabase
-        .table("supplements")
-        .select("*")
-        .eq("is_active", True)
-        .order("name", desc=False)
-        .execute()
-    )
-
-    supplements = supplements_result.data
-
+    supplements = get_active_supplements()
     if not supplements:
         st.warning("Please add supplements first.")
         return
@@ -152,7 +134,6 @@ def render_bottles_section(supabase):
 
         with col1:
             purchase_date = st.date_input("Purchase Date", value=None)
-
         with col2:
             expiry_date = st.date_input("Expiry Date", value=None)
 
@@ -160,7 +141,6 @@ def render_bottles_section(supabase):
 
         with col3:
             opened_date = st.date_input("Opened Date", value=None)
-
         with col4:
             finished_date = st.date_input("Finished Date", value=None)
 
@@ -174,76 +154,38 @@ def render_bottles_section(supabase):
         )
 
         notes = st.text_area("Notes")
-
         submitted = st.form_submit_button("Add Bottle", use_container_width=True)
 
-        if submitted:
-            supabase.table("supplement_bottles").insert({
-                "supplement_id": supplement_map[supplement_name],
-                "brand": brand.strip() or None,
-                "product_name": product_name.strip() or None,
-                "strength": strength.strip() or None,
-                "unit": unit.strip() or None,
-                "quantity": float(quantity),
-                "purchase_date": str(purchase_date) if purchase_date else None,
-                "expiry_date": str(expiry_date) if expiry_date else None,
-                "opened_date": str(opened_date) if opened_date else None,
-                "finished_date": str(finished_date) if finished_date else None,
-                "purchase_place": purchase_place.strip() or None,
-                "price": float(price) if price else None,
-                "lot_number": lot_number.strip() or None,
-                "status": status,
-                "notes": notes.strip() or None,
-            }).execute()
+    if submitted:
+        add_bottle(
+            supplement_id=supplement_map[supplement_name],
+            brand=brand.strip() or None,
+            product_name=product_name.strip() or None,
+            strength=strength.strip() or None,
+            unit=unit.strip() or None,
+            quantity=float(quantity),
+            purchase_date=str(purchase_date) if purchase_date else None,
+            expiry_date=str(expiry_date) if expiry_date else None,
+            opened_date=str(opened_date) if opened_date else None,
+            finished_date=str(finished_date) if finished_date else None,
+            purchase_place=purchase_place.strip() or None,
+            price=float(price) if price else None,
+            lot_number=lot_number.strip() or None,
+            status=status,
+            notes=notes.strip() or None,
+        )
 
-            st.success("Bottle added.")
-            st.rerun()
+        st.success("Bottle added.")
+        st.rerun()
 
     st.divider()
 
-    bottles_result = (
-        supabase
-        .table("supplement_bottles")
-        .select("*, supplements(name)")
-        .order("created_at", desc=True)
-        .execute()
-    )
-
-    bottles = bottles_result.data
-
-    if not bottles:
+    rows = get_bottle_rows()
+    if not rows:
         st.info("No supplement bottles yet.")
         return
 
-    rows = []
-
-    for bottle in bottles:
-        supplement = bottle.get("supplements") or {}
-
-        remaining = calculate_bottle_remaining(
-            bottle["id"],
-            bottle.get("initial_quantity") or bottle.get("quantity")
-        )
-
-        rows.append({
-            "id": bottle["id"],
-            "supplement": supplement.get("name"),
-            "brand": bottle.get("brand"),
-            "product_name": bottle.get("product_name"),
-            "strength": bottle.get("strength"),
-            "initial_quantity": bottle.get("initial_quantity") or bottle.get("quantity"),
-            "remaining": remaining,
-            "unit": bottle.get("unit"),
-            "purchase_date": bottle.get("purchase_date"),
-            "expiry_date": bottle.get("expiry_date"),
-            "opened_date": bottle.get("opened_date"),
-            "finished_date": bottle.get("finished_date"),
-            "status": bottle.get("status"),
-            "notes": bottle.get("notes"),
-        })
-
     df = pd.DataFrame(rows)
-
     st.dataframe(
         df.drop(columns=["id"]),
         use_container_width=True,
@@ -301,9 +243,10 @@ def render_bottles_section(supabase):
             from datetime import date
             update_data["finished_date"] = str(date.today())
 
-        supabase.table("supplement_bottles").update(
-            update_data
-        ).eq("id", bottle_options[selected_bottle]).execute()
+        update_bottle(
+            bottle_options[selected_bottle],
+            update_data,
+        )
 
         st.success("Bottle status updated.")
         st.rerun()

@@ -1,9 +1,6 @@
 import streamlit as st
 
-from utils.supplement_db import (
-    get_active_supplements,
-    get_active_bottles_by_supplement,
-    calculate_bottle_remaining,
+from services.supplement_tracking_service import (
     add_legacy_supplement_log,
     add_supplement_intake,
     delete_supplement_intake,
@@ -11,69 +8,47 @@ from utils.supplement_db import (
     get_supplement_intake_daily_summary,
 )
 
-from services.supplement_service import(
-    enrich_bottle_with_remaining,
-    build_bottle_label,
+from services.supplement_library_service import (
+    get_available_bottle_options,
 )
 
 def render_vera_supplements():
     st.subheader("Vera Supplements Log")
-
     st.caption("Record what you take at the current time. No manual date/time input.")
 
-    active_supplements = get_active_supplements()
-
-    if not active_supplements:
-        st.warning("Please add supplements in Supplement Library first.")
-        return
-
-    all_bottle_options = {}
-
-    for supplement in active_supplements:
-        active_bottles = get_active_bottles_by_supplement(
-            supplement["id"]
-        )
-
-    for bottle in active_bottles:
-        bottle = enrich_bottle_with_remaining(bottle)
-
-        label = build_bottle_label(
-            supplement,
-            bottle
-        )
-
-        all_bottle_options[label] = {
-            "supplement": supplement,
-            "bottle": bottle,
-            "remaining": bottle["remaining"],
-        }
+    all_bottle_options = get_available_bottle_options()
 
     if not all_bottle_options:
         st.warning("No active supplement bottles found. Please add bottles in Supplement Library → Bottles.")
         return
 
-    with st.form("add_supplement_form", clear_on_submit=True):
-        selected_bottle_label = st.selectbox(
-            "Bottle",
-            list(all_bottle_options.keys())
-        )
+    selected_bottle_label = st.selectbox(
+        "Bottle",
+        list(all_bottle_options.keys()),
+    )
 
-        selected = all_bottle_options[selected_bottle_label]
-        selected_supplement = selected["supplement"]
-        selected_bottle = selected["bottle"]
+    selected = all_bottle_options[selected_bottle_label]
+    selected_supplement = selected["supplement"]
+    selected_bottle = selected["bottle"]
 
-        st.caption(f'Supplement: {selected_supplement["name"]}')
-        st.caption(f'Remaining: {selected["remaining"]:g}')
+    st.caption(
+        f'Supplement: {selected_supplement["name"]}'
+    )
+    st.caption(
+        f'Remaining: {selected["remaining"]:g}'
+    )
 
+    with st.form(
+        "add_supplement_form",
+        clear_on_submit=True,
+    ):
         col1, col2 = st.columns(2)
-
         with col1:
             amount = st.number_input(
                 "Amount",
                 min_value=0.0,
                 step=1.0
             )
-
         with col2:
             unit = st.text_input(
                 "Unit",
@@ -88,7 +63,6 @@ def render_vera_supplements():
         )
 
         submitted = st.form_submit_button("Add Log", use_container_width=True)
-
         if submitted:
             add_legacy_supplement_log(
                 selected_supplement["name"],
@@ -117,7 +91,6 @@ def render_vera_supplements():
     st.markdown(f"### Daily Summary - {selected_date_str}")
 
     summary = get_supplement_intake_daily_summary(selected_date_str)
-
     if not summary:
         st.caption("No supplements recorded on this date.")
     else:
@@ -128,7 +101,6 @@ def render_vera_supplements():
             )
 
     st.divider()
-
     st.markdown(f"### Logs - {selected_date_str}")
 
     intakes = get_supplement_intakes_by_date(selected_date_str)
@@ -153,7 +125,6 @@ def render_vera_supplements():
     else:
         for intake in intakes:
             col1, col2 = st.columns([6, 1.5])
-
             with col1:
                 st.markdown(
                     f"### {intake['supplement_name']} - "

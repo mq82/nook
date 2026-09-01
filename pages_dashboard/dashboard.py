@@ -1,9 +1,5 @@
 import streamlit as st
-import pandas as pd
-from datetime import date
 
-from utils.supabase_client import get_supabase_client
-from utils.home_db import get_meals_by_date, get_expiring_inventory_items, get_shopping_items, get_all_chores
 from utils.time_utils import today_bj_date
 
 from services.dashboard_service import (
@@ -60,7 +56,6 @@ def render_chores(
                 "To Do",
                 len(todo_chores),
             )
-
     with col2:
         with st.container(border=True):
             st.metric(
@@ -74,13 +69,10 @@ def render_chores(
     st.markdown("#### Pending Chores")
 
     for chore in todo_chores:
-
         with st.container(border=True):
-
             st.markdown(
                 f"☐ **{chore['title']}**"
             )
-
             st.caption(
                 f"Created {chore['created_at']}"
             )
@@ -91,18 +83,15 @@ def render_shopping(
     shopping_purchased,
 ):
     st.divider()
-
     st.markdown("### 🛒 Shopping")
 
     col1, col2 = st.columns(2)
-
     with col1:
         with st.container(border=True):
             st.metric(
                 "To Buy",
                 len(shopping_pending),
             )
-
     with col2:
         with st.container(border=True):
             st.metric(
@@ -116,9 +105,7 @@ def render_shopping(
     st.markdown("#### Shopping List")
 
     for item in shopping_pending:
-
         with st.container(border=True):
-
             st.markdown(
                 f"**{item['name']}**"
             )
@@ -129,12 +116,9 @@ def render_shopping(
                 details.append(item["category"])
 
             if item.get("quantity"):
-
                 qty = f"{item['quantity']:g}"
-
                 if item.get("unit"):
                     qty += f" {item['unit']}"
-
                 details.append(qty)
 
             if details:
@@ -162,31 +146,24 @@ def render_fermentation(
     st.markdown("### 🌱 Fermentation")
 
     col1, col2 = st.columns(2)
-
     with col1:
         st.metric(
             "Active Kombucha",
             len(active_kombucha),
         )
-
     with col2:
-
         if oldest_kombucha_days is None:
-
             st.metric(
                 "Oldest Batch",
                 "-",
             )
-
         else:
-
             st.metric(
                 "Oldest Batch",
                 f"Day {oldest_kombucha_days}",
             )
 
     if oldest_kombucha_name:
-
         st.caption(
             f"{oldest_kombucha_name} · Day {oldest_kombucha_days}"
         )
@@ -198,27 +175,21 @@ def render_ballet(
     last_class,
 ):
     st.divider()
-
     st.markdown("### 🩰 Ballet")
 
     col1, col2 = st.columns(2)
-
     with col1:
-
         st.metric(
             "Total",
             f"{ballet_hours:.1f} hrs",
         )
-
     with col2:
-
         st.metric(
             "This Month",
             f"{ballet_this_month_hours:.1f} hrs",
         )
 
     if last_class:
-
         st.caption(
             f'{last_class["class_date"]} · '
             f'{last_class.get("studio") or ""} · '
@@ -233,11 +204,9 @@ def render_low_stock(low_stock_supplements):
         return
 
     st.divider()
-
     st.subheader("Low Stock Supplements")
 
     for item in low_stock_supplements:
-
         st.warning(
             f'{item["supplement_name"]} | '
             f'{item["brand"]} | '
@@ -253,13 +222,10 @@ def render_meals(meals_today):
         return
 
     for meal in meals_today:
-
         with st.container(border=True):
-
             st.markdown(
                 f"**{meal['meal_type']}**"
             )
-
             st.write(
                 meal["content"]
             )
@@ -270,7 +236,6 @@ def render_meals(meals_today):
                 )
 
 def render_inventory(expiring_items):
-
     st.markdown("#### 🧊 Expiring Inventory")
 
     if expiring_items:
@@ -283,41 +248,20 @@ def render_inventory(expiring_items):
         return
 
     for item in expiring_items:
-
-        days = item["days_until_expiry"]
-
-        if days < 0:
-            icon = "❌"
-            message = f"Expired {-days} day(s) ago"
-
-        elif days == 0:
-            icon = "🔴"
-            message = "Expires today"
-
-        elif days == 1:
-            icon = "🟠"
-            message = "Expires tomorrow"
-
-        else:
-            icon = "🟢"
-            message = f"Expires in {days} days"
-
+        icon = item["status_icon"]
+        message = item["status_text"]
         with st.container(border=True):
-
             st.markdown(
                 f"**{item['name']}**"
             )
-
             details = []
 
             if item.get("category"):
                 details.append(item["category"])
-
             qty = f"{item['quantity']:g}"
 
             if item.get("unit"):
                 qty += f" {item['unit']}"
-
             details.append(qty)
 
             if item.get("location"):
@@ -328,7 +272,6 @@ def render_inventory(expiring_items):
             st.caption(
                 " · ".join(details)
             )
-
             st.markdown(
                 f"{icon} {message}"
             )
@@ -348,7 +291,6 @@ def render_inventory(expiring_items):
 def render_dashboard():
     st.subheader("Today Overview")
 
-    supabase = get_supabase_client()
     today_date = today_bj_date()
     today = str(today_date)
 
@@ -390,11 +332,6 @@ def render_dashboard():
     )
 
     cycle_day = period["cycle_day"]
-    latest_period_start = period["latest_period_start"]
-    latest_period_end = period["latest_period_end"]
-    predicted_next_period = period["predicted_next_period"]
-    days_until_next_period = period["days_until_next_period"]
-    today_daily_log = period["today_daily_log"]
 
 
 
@@ -432,16 +369,6 @@ def render_dashboard():
             f"{len(todo_chores)} chore(s) still pending."
         )
 
-    expiring_today = [
-        item for item in expiring_items
-        if item["days_until_expiry"] == 0
-    ]
-
-    expired_items = [
-        item for item in expiring_items
-        if item["days_until_expiry"] < 0
-    ]
-
     if oldest_kombucha_days is not None:
         if oldest_kombucha_days >= 14:
             attention_items.append(
@@ -460,8 +387,8 @@ def render_dashboard():
 
     render_personal(
         len(vera_supplement_logs),
-            completed_pingping,
-            total_pingping
+        completed_pingping,
+        total_pingping
     )
 
     render_low_stock(
@@ -497,4 +424,3 @@ def render_dashboard():
         ballet_this_month_hours,
         last_class
     )
-    

@@ -1,7 +1,7 @@
 import streamlit as st
-from datetime import date
+from utils.time_utils import today_bj_date
 
-from utils.home_db import (
+from services.home_service import (
     add_meal,
     get_meals_by_date,
     delete_meal,
@@ -14,7 +14,7 @@ def render_meals():
     with st.form("add_meal_form", clear_on_submit=True):
         add_meal_date = st.date_input(
             "Meal Date",
-            value=date.today(),
+            value=today_bj_date(),
             key="add_meal_date",
         )
 
@@ -41,7 +41,6 @@ def render_meals():
                     meal_type,
                     meal_content.strip(),
                 )
-
                 st.session_state["meal_view_date"] = add_meal_date
                 st.success("Meal added.")
                 st.rerun()
@@ -52,7 +51,7 @@ def render_meals():
     st.subheader("View Meals by Date")
 
     if "meal_view_date" not in st.session_state:
-        st.session_state["meal_view_date"] = date.today()
+        st.session_state["meal_view_date"] = today_bj_date()
 
     view_meal_date = st.date_input(
         "View Date",

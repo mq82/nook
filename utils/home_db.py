@@ -1,5 +1,6 @@
 from utils.supabase_client import get_supabase_client
 from utils.time_utils import now_bj_iso, format_bj_time
+from datetime import date
 
 # home - meals
 def add_meal(meal_date, meal_type, content):
@@ -19,38 +20,12 @@ def get_meals_by_date(meal_date):
     result = (
         supabase
         .table("meals")
-        .select("id, meal_date, meal_type, content, created_at")
+        .select("*")
         .eq("meal_date", meal_date)
         .execute()
     )
 
-    meal_order = {
-        "Breakfast": 1,
-        "Lunch": 2,
-        "Dinner": 3,
-        "Snack": 4,
-        "Other": 5,
-    }
-
-    meals = [
-        {
-            "id": row["id"],
-            "meal_date": row["meal_date"],
-            "meal_type": row["meal_type"],
-            "content": row["content"],
-            "created_at": format_bj_time(row["created_at"]),
-        }
-        for row in result.data
-    ]
-
-    meals.sort(
-        key=lambda x: (
-            meal_order.get(x["meal_type"], 99),
-            x["created_at"],
-        )
-    )
-
-    return meals
+    return result.data
 
 
 def delete_meal(meal_id):
@@ -168,13 +143,12 @@ def get_inventory_items():
         supabase
         .table("inventory")
         .select("*")
-        .order("id", desc=True)
         .execute()
     )
 
     return result.data
 
-from datetime import date
+
 
 
 def get_expiring_inventory_items(days=3):
